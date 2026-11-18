@@ -27,10 +27,14 @@ botocore==1.44.5
     # via
     #   boto3
     #   s3transfer
+brotli==1.2.1
+    # via yt-dlp
 celery==5.7.0
     # via cortalives (pyproject.toml)
 certifi==2026.10.23
-    # via requests
+    # via
+    #   requests
+    #   yt-dlp
 cffi==2.1.1
     # via cryptography
 channels==4.3.2
@@ -132,6 +136,8 @@ kombu==5.7.0
     # via celery
 msgpack==1.2.4
     # via channels-redis
+mutagen==1.48.1
+    # via yt-dlp
 numpy==2.5.5
     # via
     #   ctranslate2
@@ -159,6 +165,8 @@ psycopg-binary==3.3.9
     # via psycopg
 pycparser==3.12
     # via cffi
+pycryptodomex==3.24.2
+    # via yt-dlp
 pyjwt==2.15.1
     # via django-allauth
 python-dateutil==2.9.0.post0
@@ -182,7 +190,9 @@ referencing==0.37.0
     #   jsonschema
     #   jsonschema-specifications
 requests==2.34.2
-    # via django-allauth
+    # via
+    #   django-allauth
+    #   yt-dlp
 rpds-py==2026.9.1
     # via
     #   jsonschema
@@ -219,6 +229,7 @@ urllib3==2.8.0
     # via
     #   botocore
     #   requests
+    #   yt-dlp
 uvicorn==0.54.0
     # via cortalives (pyproject.toml)
 uvloop==0.23.0
@@ -233,8 +244,12 @@ watchfiles==1.3.0
 wcwidth==0.9.4
     # via prompt-toolkit
 websockets==17.4
-    # via uvicorn
+    # via
+    #   uvicorn
+    #   yt-dlp
 whitenoise==6.12.0
     # via cortalives (pyproject.toml)
 yt-dlp==2026.10.26
     # via cortalives (pyproject.toml)
+yt-dlp-ejs==0.8.0
+    # via yt-dlp

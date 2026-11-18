@@ -20,3 +20,11 @@ def test_canonical_links():
 def test_fake_upload():
     with pytest.raises(ValidationError):
         validate_upload(SimpleUploadedFile("spoof.mp4", b"not a container", content_type="video/mp4"))
+
+
+def test_live_links():
+    assert canonical_url("https://www.youtube.com/live/abcdefghijk?si=xyz") == "https://www.youtube.com/watch?v=abcdefghijk"
+    assert canonical_url("https://www.youtube.com/@channel/live?feature=share") == "https://www.youtube.com/@channel/live"
+    assert canonical_url("https://www.twitch.tv/Example_Channel/") == "https://www.twitch.tv/example_channel"
+    with pytest.raises(ValidationError):
+        canonical_url("https://www.twitch.tv/directory")

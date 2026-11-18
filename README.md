@@ -66,15 +66,32 @@ A instalação local compartilha dois processos Celery entre filas distintas. A 
 - **Análise semântica.** Por padrão roda localmente com heurísticas. `SEMANTIC_PROVIDER=chat` ativa um endpoint compatível com chat completions, como Ollama ou OpenAI. Informe URL base, modelo e chave quando necessária. Essa opção envia trechos de texto ao provedor configurado e limita cada análise a 12 chamadas com fallback local.
 - **TLS de build.** Em rede que inspeciona TLS, monte o bundle confiável como segredo BuildKit `package_ca`.
 
+## Capturar uma live em andamento
+
+Em **Novo processamento**, cole o link público de uma transmissão autorizada. São aceitos links de vídeo e de live do YouTube (incluindo `/live/ID` e `/@canal/live`) e links de canal e de VOD da Twitch. O worker consulta a plataforma para detectar se a transmissão está ao vivo. Nesse caso, grava a partir da janela ao vivo disponível durante o período escolhido, cinco minutos por padrão, antes de transcrever, sugerir cortes e gerar os MP4s para download.
+
+Defina `LIVE_CAPTURE_MAX_MINUTES` para ajustar o limite de duração por gravação, até 30 minutos. A captura também respeita os limites de duração e tamanho do vídeo. O Docker inclui Node.js e os componentes JavaScript do yt-dlp para o YouTube. Fora do Docker, instale Node.js 22 ou superior, FFmpeg e as dependências Python do projeto. Configure `IMPORT_PROXY` no web e no worker e use um proxy HTTP com saída controlada que permita os hosts públicos de mídia necessários. O worker precisa de acesso a esses hosts durante toda a gravação. Uma transmissão agendada, privada, bloqueada ou que encerre antes de fornecer mídia utilizável pode falhar.
+
 ## Domínio no Render
 
 O Django inclui o host exato de `RENDER_EXTERNAL_HOSTNAME` e a origem HTTPS correspondente, usando a variável que o Render fornece ao serviço web. Para um domínio personalizado, inclua o hostname em `ALLOWED_HOSTS` e a origem HTTPS em `CSRF_TRUSTED_ORIGINS`. Em produção, defina `DEBUG=False` e configure um `SECRET_KEY` exclusivo e estável nas variáveis do serviço.
+
+## Pipeline completo no Render
+
+O arquivo `render.yaml` define um serviço web, dois serviços de background (Celery Worker e Beat), PostgreSQL e Render Key Value. É uma configuração com recursos **pagos**. Revise os custos antes de confirmar o Blueprint.
+
+1. Crie um bucket privado S3 ou compatível. Crie no Render um grupo de variáveis chamado `autoclips-storage` com `S3_BUCKET`, `AWS_REGION`, as credenciais de acesso e, se necessário, `S3_ENDPOINT`. O grupo precisa estar na mesma conta do Blueprint.
+2. Crie o Blueprint apontando para o repositório e para `render.yaml`. Para manter um serviço existente, confira o nome, a região e o plano antes de sincronizar. Um serviço com outro nome pode resultar na criação de uma nova URL. O Blueprint cria um PostgreSQL se ainda não existir um recurso com o nome definido. Ele não migra dados de um SQLite ou de outro banco existente.
+3. Configure o SMTP no serviço web para verificação de e-mail e recuperação de senha. Para importar links, configure `IMPORT_PROXY` no web e no worker e aplique as restrições de saída descritas acima. Para publicar, configure as credenciais de cada integração tanto no web quanto no worker.
+4. Confira `/health/` e execute `python manage.py check_processing` no Shell do serviço web para checar o consumo das filas. Envie um vídeo de teste e confirme que o worker conclui a renderização e que o MP4 abre pela prévia.
+
+O deploy web executa as migrations antes de trocar a versão ativa e inicia o ASGI na porta `PORT`. Tanto o web quanto o worker falham na inicialização se o bucket compartilhado estiver ausente, para evitar salvar mídia em discos separados.
 
 ## Operação e limites atuais
 
 Em implantação, configure HTTPS, `DEBUG=False`, um segredo exclusivo, domínios em `ALLOWED_HOSTS` e `CSRF_TRUSTED_ORIGINS`, SMTP e verificação de e-mail obrigatória. Restrinja PostgreSQL e Redis, limite o corpo de upload no proxy e configure backup e alertas. `VIDEO_RETENTION_DAYS` remove arquivos de vídeos em estados finais após o prazo e preserva o consumo e os metadados. A retenção automática vem desativada. Configure retenção de logs e backups, atendimento a titulares e controle sobre envio de texto a terceiros antes de operar comercialmente.
 
-A captura ao vivo, a cobrança e a publicação direta no TikTok continuam pendentes. O frontend usa templates Django, CSS próprio e JavaScript, com WebSocket e polling de recuperação. O cancelamento invalida resultados em andamento. Um FFmpeg já em execução pode continuar até terminar ou atingir o timeout. Uma resposta de upload perdida no YouTube deixa o status indeterminado para evitar reenvio duplicado.
+A cobrança e a publicação direta no TikTok continuam pendentes. O frontend usa templates Django, CSS próprio e JavaScript, com WebSocket e polling de recuperação. O cancelamento invalida resultados em andamento. Um FFmpeg já em execução pode continuar até terminar ou atingir o timeout. Uma resposta de upload perdida no YouTube deixa o status indeterminado para evitar reenvio duplicado.
 
 ## Recursos opcionais adicionais
 

@@ -1,0 +1,90 @@
+envVarGroups:
+  - name: autoclips-runtime
+    envVars:
+      - key: DEBUG
+        value: "False"
+      - key: SECRET_KEY
+        generateValue: true
+      - key: SHARED_CACHE
+        value: "True"
+      - key: WHISPER_MODEL
+        value: tiny
+      - key: WHISPER_CPU_THREADS
+        value: "2"
+
+databases:
+  - name: autoclips-postgres
+    plan: 0.1c-256mb
+    region: oregon
+    postgresMajorVersion: "16"
+    ipAllowList: []
+
+services:
+  - type: keyvalue
+    name: autoclips-redis
+    plan: 256mb
+    region: oregon
+    ipAllowList: []
+    maxmemoryPolicy: noeviction
+
+  - type: web
+    name: autoclips
+    runtime: docker
+    plan: starter
+    region: oregon
+    healthCheckPath: /health/
+    preDeployCommand: python manage.py migrate --noinput
+    dockerCommand: sh deploy/render-web.sh
+    envVars:
+      - fromGroup: autoclips-runtime
+      - fromGroup: autoclips-storage
+      - key: REQUIRE_SHARED_STORAGE
+        value: "True"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: autoclips-postgres
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          name: autoclips-redis
+          type: keyvalue
+          property: connectionString
+
+  - type: worker
+    name: autoclips-worker
+    runtime: docker
+    plan: standard
+    region: oregon
+    dockerCommand: celery -A core worker -l INFO -c 1 -Q celery,downloads,transcriptions,analysis,clips,rendering,publishing
+    envVars:
+      - fromGroup: autoclips-runtime
+      - fromGroup: autoclips-storage
+      - key: REQUIRE_SHARED_STORAGE
+        value: "True"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: autoclips-postgres
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          name: autoclips-redis
+          type: keyvalue
+          property: connectionString
+
+  - type: worker
+    name: autoclips-beat
+    runtime: docker
+    plan: starter
+    region: oregon
+    dockerCommand: celery -A core beat -l INFO --schedule /data/beat/celerybeat
+    envVars:
+      - fromGroup: autoclips-runtime
+      - key: DATABASE_URL
+        fromDatabase:
+          name: autoclips-postgres
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          name: autoclips-redis
+          type: keyvalue
+          property: connectionString

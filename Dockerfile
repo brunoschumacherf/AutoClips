@@ -11,6 +11,7 @@ RUN --mount=type=bind,target=/src,readonly --mount=type=secret,id=package_ca \
     && mkdir -p /data/media /data/huggingface /data/beat \
     && cp -a /src/. /app/ \
     && chown -R cortalives:cortalives /app /data
+COPY --from=node:24-bookworm-slim /usr/local/bin/node /usr/local/bin/node
 USER cortalives
 ENV MEDIA_ROOT=/data/media HF_HOME=/data/huggingface
 EXPOSE 8000

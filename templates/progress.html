@@ -1,6 +1,6 @@
 <div id="progress" {% if active %}data-refresh="{% url 'video-progress' video.public_id %}" data-socket="/ws/videos/{{ video.public_id }}/"{% endif %}>
 <section class="card status" aria-live="polite">
-<div><span class="pill">{{ video.get_status_display }}</span>{% if video.error %}<p role="alert">{{ video.error }}</p>{% endif %}</div>
+<div><span class="pill">{% if video.status == "importing" and video.origin.kind == "live" %}Gravando ao vivo{% else %}{{ video.get_status_display }}{% endif %}</span>{% if video.error %}<p role="alert">{{ video.error }}</p>{% endif %}</div>
 {% if active and video.status != 'done' %}<form method="post" action="{% url 'video-cancel' video.public_id %}">{% csrf_token %}<button class="quiet">Cancelar</button></form>{% endif %}
 </section>
 <h2>Cortes sugeridos</h2>

@@ -5,6 +5,7 @@ from django.conf import settings
 from django.db import transaction
 
 from accounts.models import AuditLog
+from streams.services import capture, live_status
 from core.media import MediaError, materialize, probe, run_media, save_artifact
 from subscriptions.services import adjust_storage, reserve
 from .forms import canonical_url
@@ -23,7 +24,7 @@ def submit(workspace, data):
     try:
         with transaction.atomic():
             video = Video.objects.create(workspace=workspace, title=data["title"], options={
-                key: data[key] for key in ("count", "minimum", "maximum", "aspect", "quality", "language")
+                key: data[key] for key in ("count", "minimum", "maximum", "aspect", "quality", "language", "capture_minutes")
             })
             reserve(video, size=upload.size if upload else 0)
             VideoSource.objects.create(video=video, url=data["url"], kind="upload" if upload else "link")
@@ -46,10 +47,16 @@ def download(video, folder):
         raise MediaError("O proxy de importação não está configurado.")
     url = canonical_url(video.origin.url)
     limit = int(video.options["quality"])
+    status = live_status(url)
+    if status == "is_live":
+        return capture(video, url, folder, limit)
+    if status == "is_upcoming":
+        raise MediaError("A transmissão ainda não começou. Envie o link novamente quando estiver ao vivo.")
     target = folder / "source.mkv"
     try:
         subprocess.run([
             "yt-dlp", "--ignore-config", "--no-playlist", "--no-live-from-start", "--restrict-filenames",
+            "--use-extractors", "youtube,youtube:tab,twitch:vod", "--js-runtimes", "node", "--compat-options", "no-certifi",
             "--socket-timeout", "15", "--no-progress", "--proxy", settings.IMPORT_PROXY,
             "--match-filter", f"!is_live & duration <= {settings.MAX_VIDEO_SECONDS}",
             "--max-filesize", str(settings.MAX_UPLOAD_BYTES), "--merge-output-format", "mkv",

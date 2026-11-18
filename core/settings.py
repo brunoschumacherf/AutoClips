@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import environ
+from django.core.exceptions import ImproperlyConfigured
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 env = environ.Env()
@@ -64,10 +65,13 @@ STATICFILES_DIRS = [BASE_DIR / "static"]
 MEDIA_ROOT = env("MEDIA_ROOT", default=str(BASE_DIR / "media"))
 MEDIA_URL = "/media/"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
-if env("S3_BUCKET", default=""):
+S3_BUCKET = env("S3_BUCKET", default="").strip()
+if env.bool("REQUIRE_SHARED_STORAGE", default=False) and not S3_BUCKET:
+    raise ImproperlyConfigured("Set S3_BUCKET for deployments with separate web and worker instances.")
+if S3_BUCKET:
     STORAGES = {
         "default": {"BACKEND": "storages.backends.s3.S3Storage", "OPTIONS": {
-            "bucket_name": env("S3_BUCKET"), "endpoint_url": env("S3_ENDPOINT", default=None),
+            "bucket_name": S3_BUCKET, "endpoint_url": env("S3_ENDPOINT", default=None),
             "region_name": env("AWS_REGION", default="us-east-1"), "default_acl": None,
             "file_overwrite": False, "querystring_auth": True, "querystring_expire": 120,
         }},
@@ -103,6 +107,7 @@ WHISPER_MODEL = env("WHISPER_MODEL", default="tiny")
 WHISPER_DEVICE = env("WHISPER_DEVICE", default="cpu")
 WHISPER_COMPUTE_TYPE = env("WHISPER_COMPUTE_TYPE", default="int8")
 WHISPER_CPU_THREADS = env.int("WHISPER_CPU_THREADS", default=4)
+LIVE_CAPTURE_MAX_MINUTES = max(1, min(30, env.int("LIVE_CAPTURE_MAX_MINUTES", default=15)))
 IMPORT_PROXY = env("IMPORT_PROXY", default="")
 SEMANTIC_PROVIDER = env("SEMANTIC_PROVIDER", default="heuristic")
 SEMANTIC_API_BASE = env("SEMANTIC_API_BASE", default="")
@@ -114,8 +119,6 @@ SCORE_WEIGHTS = {
                          "engagement": 1, "technical": 1}.items()
 }
 if any(value < 0 for value in SCORE_WEIGHTS.values()) or not sum(SCORE_WEIGHTS.values()):
-    from django.core.exceptions import ImproperlyConfigured
-
     raise ImproperlyConfigured("Score weights must be non-negative and at least one must be positive.")
 DIARIZATION_MODEL = env("DIARIZATION_MODEL", default="")
 DIARIZATION_TOKEN = env("DIARIZATION_TOKEN", default="")

@@ -1,0 +1,33 @@
+{% load static %}<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}CortaLives{% endblock %}</title>
+<link rel="stylesheet" href="{% static 'app.css' %}">
+<script src="{% static 'app.js' %}" defer></script>
+</head>
+<body>
+{% if user.is_authenticated %}
+<div class="shell">
+<aside>
+<a class="brand" href="{% url 'dashboard' %}"><span class="logo">▶</span> CortaLives</a>
+<nav aria-label="Principal">
+<a href="{% url 'dashboard' %}">Visão geral</a>
+<a href="{% url 'library' %}">Biblioteca</a>
+<a href="{% url 'analytics' %}">Analytics</a>
+<a href="{% url 'publications' %}">Publicações</a>
+<a href="{% url 'usage' %}">Assinatura e consumo</a>
+<a href="{% url 'settings' %}">Configurações</a>
+</nav>
+<form method="post" action="{% url 'account_logout' %}" class="session">{% csrf_token %}<button class="quiet">Sair</button></form>
+</aside>
+<main class="workspace">
+{% else %}
+<header class="topbar"><a class="brand" href="{% url 'landing' %}"><span class="logo">▶</span> CortaLives</a><nav><a href="{% url 'account_login' %}">Entrar</a><a class="button compact" href="{% url 'account_signup' %}">Criar conta</a></nav></header>
+<main class="public">
+{% endif %}
+{% for message in messages %}<p class="notice">{{ message }}</p>{% endfor %}
+{% block body %}{% endblock %}
+</main>
+{% if user.is_authenticated %}</div>{% endif %}
+</body></html>

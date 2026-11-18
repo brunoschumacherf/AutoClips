@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block body %}
+<header class="heading"><div><h1>Publicações</h1><p>Contas sociais e histórico de envios.</p></div></header>
+<section class="card"><h2>Contas conectadas</h2>
+{% for account in accounts %}<p>{{ account.provider }} · {{ account.label }}</p>{% empty %}<p>Nenhuma conta conectada.</p>{% endfor %}
+{% if youtube_enabled %}<form method="post" action="{% url 'youtube-connect' %}">{% csrf_token %}<button class="button">Conectar YouTube</button></form>{% else %}<p>Configure as credenciais OAuth para conectar o YouTube.</p>{% endif %}
+<p>TikTok e Instagram exigem aprovação das plataformas e ainda não estão disponíveis nesta instalação.</p>
+</section>
+<section class="card"><h2>Histórico</h2>{% for publication in publications %}<div class="row"><span>{{ publication.title }}{% if publication.error %} · {{ publication.error }}{% endif %}</span><span>{{ publication.status }}</span></div>{% empty %}<p>Nenhuma publicação registrada.</p>{% endfor %}</section>
+{% endblock %}

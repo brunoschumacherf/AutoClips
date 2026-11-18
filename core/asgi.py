@@ -1,0 +1,19 @@
+import os
+
+from channels.auth import AuthMiddlewareStack
+from channels.routing import ProtocolTypeRouter, URLRouter
+from channels.security.websocket import AllowedHostsOriginValidator
+from django.core.asgi import get_asgi_application
+from django.urls import path
+
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "core.settings")
+http = get_asgi_application()
+
+from videos.consumers import VideoProgress
+
+application = ProtocolTypeRouter({
+    "http": http,
+    "websocket": AllowedHostsOriginValidator(AuthMiddlewareStack(URLRouter([
+        path("ws/videos/<uuid:public_id>/", VideoProgress.as_asgi()),
+    ]))),
+})

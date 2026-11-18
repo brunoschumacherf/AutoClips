@@ -1,0 +1,6 @@
+{% extends "base.html" %}
+{% block body %}
+<a class="back" href="{% url 'library' %}">← Biblioteca</a>
+<header class="heading"><div><h1>{{ video.title }}</h1><p>Adicionado em {{ video.created_at|date:"d/m/Y" }}{% if video.duration %} · {{ video.duration|floatformat:0 }} s{% endif %}</p></div></header>
+{% include "progress.html" %}
+{% endblock %}

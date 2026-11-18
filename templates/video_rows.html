@@ -1,0 +1,3 @@
+{% for video in videos %}
+<a class="row" href="{% url 'video' video.public_id %}"><strong>{{ video.title }}</strong><span class="pill">{{ video.get_status_display }}</span></a>
+{% empty %}<p class="empty">Nenhum vídeo ainda. Adicione um vídeo para gerar seus primeiros cortes.</p>{% endfor %}

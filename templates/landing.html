@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block body %}
+<section class="hero">
+<div>
+<p class="eyebrow">DO VÍDEO LONGO AO CORTE</p>
+<h1>Os melhores momentos merecem <em>um corte.</em></h1>
+<p>Transforme lives e vídeos longos em cortes prontos para Shorts, Reels e TikTok, com enquadramento e legendas automáticas.</p>
+<a class="button" href="{% if user.is_authenticated %}{% url 'video-create' %}{% else %}{% url 'account_signup' %}{% endif %}">Começar agora <span aria-hidden="true">↗</span></a>
+</div>
+<div class="art" aria-hidden="true"><div class="film"><div class="play">▶</div><div class="subtitle"></div><div class="subtitle short"></div></div><div class="track"></div><div class="track second"></div></div>
+</section>
+{% endblock %}

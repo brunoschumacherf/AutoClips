@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block body %}
+<a class="back" href="{% url 'video' clip.video.public_id %}">← Voltar ao vídeo</a>
+<header class="heading"><div><h1>Editor de corte</h1><p>{{ clip.title }}</p></div>{% if version.output %}<a class="button" href="{% url 'clip-asset' clip.public_id 'download' %}">Baixar MP4 ↓</a>{% endif %}</header>
+<div class="editor">
+<section class="card">
+<h2>Prévia</h2>
+{% if version.output %}<video controls preload="metadata" src="{% url 'clip-asset' clip.public_id 'preview' %}"></video>
+<div class="paging"><a href="{% url 'clip-asset' clip.public_id 'srt' %}">Baixar SRT</a><a href="{% url 'clip-asset' clip.public_id 'vtt' %}">Baixar VTT</a></div>
+{% if can_publish %}<a href="{% url "clip-publish" clip.public_id %}">Agendar envio ao YouTube</a>{% endif %}
+{% elif version.render.status == 'failed' %}<p>{{ version.render.error }} Salve novamente para tentar outra renderização.</p>
+{% elif version.render.status == "done" %}<p>A prévia expirou.</p>{% elif version.render.status == 'canceled' %}<p>Renderização cancelada. Salve o corte para gerar uma nova versão.</p>
+{% else %}<p>Renderização em andamento.</p><a href="{{ request.path }}">Atualizar prévia ↻</a>
+<form method="post" action="{% url 'clip-cancel' clip.public_id %}">{% csrf_token %}<button class="quiet">Cancelar renderização</button></form>
+{% endif %}
+{% if clip.video.source %}<details><summary>Vídeo original e timeline</summary>
+<video id="original" controls preload="none" src="{% url 'source' clip.video.public_id %}"></video>
+<label for="timeline">Posição no original</label><input id="timeline" type="range" min="0" max="{{ clip.video.duration|floatformat:'2u' }}" step=".01" value="{{ version.start|floatformat:'2u' }}">
+<div class="paging"><button type="button" class="quiet" data-mark="start">Marcar início</button><button type="button" class="quiet" data-mark="end">Marcar fim</button></div>
+</details>{% endif %}
+</section>
+<section class="card">{% if clip.video.source %}<form method="post">{% csrf_token %}{{ form.as_p }}<button class="button">Salvar e renderizar</button></form>{% endif %}
+<form method="post" action="{% url 'clip-delete' clip.public_id %}" class="delete-form" data-confirm="Excluir este corte?">{% csrf_token %}<button class="quiet danger">Excluir corte</button></form></section>
+</div>
+{% endblock %}

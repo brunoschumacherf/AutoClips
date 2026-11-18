@@ -1,0 +1,20 @@
+[project]
+name = "cortalives"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+  "Django>=5.2,<5.3", "django-allauth[socialaccount]>=65,<66", "django-environ>=0.12,<1",
+  "celery[redis]>=5.5,<6", "psycopg[binary]>=3.2,<4", "djangorestframework>=3.16,<4",
+  "drf-spectacular>=0.28,<1", "channels>=4.2,<5", "channels-redis>=4.2,<5",
+  "django-storages[s3]>=1.14,<2", "gunicorn>=23,<24", "uvicorn[standard]>=0.34,<1",
+  "cryptography>=45,<49", "whitenoise>=6.9,<7",
+  "faster-whisper>=1.2,<2", "yt-dlp>=2026.1.1,<2027", "opencv-python-headless>=4.10,<5",
+]
+[project.optional-dependencies]
+test = ["pytest>=8,<10", "pytest-django>=4.10,<5"]
+observability = ["sentry-sdk>=2,<3"]
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "core.settings"
+testpaths = ["tests"]
+[tool.setuptools]
+packages = []

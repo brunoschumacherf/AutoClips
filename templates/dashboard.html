@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block body %}
+<header class="heading"><div><p class="eyebrow">SEU ESPAÇO DE TRABALHO</p><h1>Visão geral</h1><p>Acompanhe seus vídeos e cortes.</p></div><a class="button" href="{% url 'video-create' %}">+ Novo processamento</a></header>
+<section class="metrics" aria-label="Métricas">
+{% for label, total in metrics %}<div class="card metric"><span>{{ label }}</span><strong>{{ total }}</strong></div>{% endfor %}
+<div class="card metric"><span>Envios processados</span><strong>{{ published }}</strong></div>
+</section>
+<section class="card"><div class="section-heading"><h2>Vídeos recentes</h2><a href="{% url 'library' %}">Ver biblioteca ↗</a></div>
+{% include "video_rows.html" %}
+</section>
+<section class="card"><div class="section-heading"><h2>Atividade</h2><a href="{% url 'usage' %}">Plano {{ plan.name }} ↗</a></div>
+{% for item in notifications %}<div class="row"><span>{{ item.message }}</span><time>{{ item.created_at|date:"d/m H:i" }}</time></div>{% empty %}<p class="empty">As atualizações de processamento aparecem aqui.</p>{% endfor %}</section>
+{% endblock %}

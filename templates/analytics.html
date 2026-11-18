@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block body %}
+<header class="heading"><div><h1>Analytics</h1><p>Resultados dos seus processamentos.</p></div></header>
+<section class="metrics"><div class="card metric"><span>Processamentos com falha</span><strong>{{ failed }}</strong></div><div class="card metric"><span>Envios processados no YouTube</span><strong>{{ published }}</strong></div></section>
+<section class="card"><h2>Processamentos concluídos por dia de envio</h2>
+{% for day in days %}<div class="row"><time>{{ day.day|date:"d/m/Y" }}</time><span>{{ day.total }} vídeo{{ day.total|pluralize }} · {{ day.minutes }} min</span></div>{% empty %}<p>Nenhum processamento concluído.</p>{% endfor %}
+</section>
+{% endblock %}

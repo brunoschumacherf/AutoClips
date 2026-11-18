@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block body %}
+<header class="heading"><div><h1>Assinatura e consumo</h1><p>Plano {{ plan.name }}</p></div></header>
+<div class="metrics"><div class="card metric"><span>Minutos no mês</span><strong>{{ minutes }}</strong><span>Limite de {{ plan.monthly_seconds }} segundos</span></div>
+<div class="card metric"><span>Cortes no mês</span><strong>{{ clips }}</strong><span>Limite de {{ plan.monthly_clips }}</span></div>
+<div class="card metric"><span>Arquivos armazenados</span><strong>{{ storage }} MB</strong></div></div>
+{% endblock %}

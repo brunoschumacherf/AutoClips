@@ -1,0 +1,19 @@
+<div id="progress" {% if active %}data-refresh="{% url 'video-progress' video.public_id %}" data-socket="/ws/videos/{{ video.public_id }}/"{% endif %}>
+<section class="card status" aria-live="polite">
+<div><span class="pill">{{ video.get_status_display }}</span>{% if video.error %}<p role="alert">{{ video.error }}</p>{% endif %}</div>
+{% if active and video.status != 'done' %}<form method="post" action="{% url 'video-cancel' video.public_id %}">{% csrf_token %}<button class="quiet">Cancelar</button></form>{% endif %}
+</section>
+<h2>Cortes sugeridos</h2>
+<p>O score estima a relevância do trecho com base no conteúdo, áudio e imagem.</p>
+<div class="clip-grid">
+{% for clip in clips %}<article class="card clip-card">
+{% if clip.current_version.thumbnail %}<a href="{% url 'clip' clip.public_id %}"><img src="{% url 'clip-asset' clip.public_id 'thumbnail' %}" alt=""></a>{% endif %}
+<div class="clip-info"><span class="pill">{{ clip.highlight.score }}/100</span><h3><a href="{% url 'clip' clip.public_id %}">{{ clip.title }}</a></h3>
+{% if clip.current_version.output %}<a href="{% url 'clip' clip.public_id %}">Prévia e editor ↗</a>
+{% elif clip.current_version.render.status == 'failed' %}<p>Falha na renderização.</p><a href="{% url 'clip' clip.public_id %}">Abrir editor ↗</a>
+{% elif clip.current_version.render.status == 'canceled' %}<p>Renderização cancelada</p>
+{% elif clip.current_version.render.status == 'done' %}<p>Prévia expirada</p>
+{% else %}<p>Renderização pendente</p>{% endif %}</div></article>
+{% empty %}<p class="empty">Os cortes aparecerão quando a análise do vídeo terminar.</p>{% endfor %}
+</div>
+</div>

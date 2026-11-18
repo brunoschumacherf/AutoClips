@@ -1,0 +1,84 @@
+x-app: &app
+  image: cortalives:local
+  build: .
+  env_file: .env
+  environment:
+    DATABASE_URL: postgresql://cortalives:${POSTGRES_PASSWORD:-cortalives}@db:5432/cortalives
+    REDIS_URL: redis://redis:6379/0
+    SHARED_CACHE: "true"
+  volumes:
+    - media:/data/media
+    - models:/data/huggingface
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: cortalives
+      POSTGRES_USER: cortalives
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-cortalives}
+    volumes:
+      - postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cortalives -d cortalives"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - queue:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  setup:
+    <<: *app
+    command: ["python", "manage.py", "migrate", "--noinput"]
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    <<: *app
+    command: ["sh", "-c", "python manage.py collectstatic --noinput && exec uvicorn core.asgi:application --host 0.0.0.0 --port 8000"]
+    ports:
+      - "127.0.0.1:8000:8000"
+    depends_on:
+      setup:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+
+  worker:
+    <<: *app
+    command: ["celery", "-A", "core", "worker", "-l", "INFO", "-c", "2", "-Q", "celery,downloads,transcriptions,analysis,clips,rendering,publishing"]
+    cpus: 4
+    mem_limit: 6g
+    depends_on:
+      setup:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+
+  beat:
+    <<: *app
+    command: ["celery", "-A", "core", "beat", "-l", "INFO", "--schedule", "/data/beat/celerybeat"]
+    volumes:
+      - beat:/data/beat
+    depends_on:
+      setup:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+
+volumes:
+  postgres:
+  queue:
+  media:
+  models:
+  beat:

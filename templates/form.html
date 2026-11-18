@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block body %}
+<header class="heading"><div><h1>{{ title }}</h1>{% if upload %}<p>Envie um vídeo autorizado e escolha como gerar os cortes.</p>{% endif %}</div></header>
+<section class="card form-card">
+<form method="post" {% if upload %}enctype="multipart/form-data"{% endif %}>{% csrf_token %}{{ form.as_p }}<button class="button">{{ button }}</button></form>
+{% if profile %}<p><a href="{% url 'account_email' %}">Gerenciar e-mail</a> · <a href="{% url 'account_change_password' %}">Alterar senha</a></p>{% endif %}
+</section>
+{% endblock %}

@@ -66,6 +66,10 @@ A instalação local compartilha dois processos Celery entre filas distintas. A 
 - **Análise semântica.** Por padrão roda localmente com heurísticas. `SEMANTIC_PROVIDER=chat` ativa um endpoint compatível com chat completions, como Ollama ou OpenAI. Informe URL base, modelo e chave quando necessária. Essa opção envia trechos de texto ao provedor configurado e limita cada análise a 12 chamadas com fallback local.
 - **TLS de build.** Em rede que inspeciona TLS, monte o bundle confiável como segredo BuildKit `package_ca`.
 
+## Domínio no Render
+
+O Django inclui o host exato de `RENDER_EXTERNAL_HOSTNAME` e a origem HTTPS correspondente, usando a variável que o Render fornece ao serviço web. Para um domínio personalizado, inclua o hostname em `ALLOWED_HOSTS` e a origem HTTPS em `CSRF_TRUSTED_ORIGINS`. Em produção, defina `DEBUG=False` e configure um `SECRET_KEY` exclusivo e estável nas variáveis do serviço.
+
 ## Operação e limites atuais
 
 Em implantação, configure HTTPS, `DEBUG=False`, um segredo exclusivo, domínios em `ALLOWED_HOSTS` e `CSRF_TRUSTED_ORIGINS`, SMTP e verificação de e-mail obrigatória. Restrinja PostgreSQL e Redis, limite o corpo de upload no proxy e configure backup e alertas. `VIDEO_RETENTION_DAYS` remove arquivos de vídeos em estados finais após o prazo e preserva o consumo e os metadados. A retenção automática vem desativada. Configure retenção de logs e backups, atendimento a titulares e controle sobre envio de texto a terceiros antes de operar comercialmente.

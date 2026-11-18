@@ -9,4 +9,32 @@
 </div>
 <div class="art" aria-hidden="true"><div class="film"><div class="play">▶</div><div class="subtitle"></div><div class="subtitle short"></div></div><div class="track"></div><div class="track second"></div></div>
 </section>
+{% if standard_plans %}
+<section class="landing-plans" aria-labelledby="plans-title" id="planos">
+<h2 id="plans-title">Planos</h2>
+<div class="landing-plan-grid">
+{% for card in standard_plans %}
+<article class="card landing-plan">
+<h3>{{ card.plan.name }}</h3>
+{% if card.plan.name == "Free" %}
+<p class="plan-price">Grátis</p>
+{% elif card.plan.pix_price %}
+<p class="plan-price">A partir de R$ {{ card.plan.pix_price|floatformat:2 }} <small>por 30 dias</small></p>
+{% endif %}
+<ul>
+<li>{{ card.plan.monthly_clips }} cortes por mês</li>
+<li>{{ card.minutes|floatformat:"-1" }} minutos de processamento por mês</li>
+<li>Exportação em até {{ card.plan.max_height }}p</li>
+</ul>
+{% if card.plan.name == "Free" %}
+<a class="button" href="{% if user.is_authenticated %}{% url 'video-create' %}{% else %}{% url 'account_signup' %}{% endif %}">Começar grátis</a>
+{% elif card.plan.pix_price %}
+{% url 'usage' as usage_url %}
+<a class="button" href="{% if user.is_authenticated %}{{ usage_url }}{% else %}{% url 'account_signup' %}?next={{ usage_url|urlencode }}{% endif %}">Ver oferta Pix</a>
+{% endif %}
+</article>
+{% endfor %}
+</div>
+</section>
+{% endif %}
 {% endblock %}

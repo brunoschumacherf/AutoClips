@@ -4,7 +4,6 @@ from django.core.cache import cache
 from django.db import connection
 from django.http import JsonResponse
 from django.urls import include, path
-from django.views.generic import TemplateView
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 from rest_framework.routers import DefaultRouter
 
@@ -33,7 +32,7 @@ def health(request):
 router = DefaultRouter()
 router.register("videos", VideoViewSet, basename="api-video")
 urlpatterns = [
-    path("", TemplateView.as_view(template_name="landing.html"), name="landing"),
+    path("", dashboard.landing, name="landing"),
     path("admin/", admin.site.urls),
     path("accounts/", include("allauth.urls")),
     path("dashboard/", dashboard.home, name="dashboard"),

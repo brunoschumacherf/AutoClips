@@ -1,5 +1,5 @@
 from django.contrib.auth.decorators import login_required
-from django.db.models import Sum
+from django.db.models import Min, Q, Sum
 from django.shortcuts import render
 from django.utils import timezone
 
@@ -9,9 +9,22 @@ from notifications.models import Notification
 from publishing.models import Publication, SocialAccount
 from publishing import instagram, tiktok, youtube
 from subscriptions import pix
-from subscriptions.models import PixOffer, PixOrder, Subscription, UsageRecord
+from subscriptions.models import PixOffer, PixOrder, Subscription, SubscriptionPlan, UsageRecord
 from subscriptions.services import credits_for, period_start, plan_for
 from videos.models import Video
+
+
+def landing(request):
+    standard_order = ("Free", "Starter", "Pro")
+    plans = SubscriptionPlan.objects.filter(is_default=True)
+    if pix.enabled():
+        plans = plans.annotate(pix_price=Min("pixoffer__amount", filter=Q(pixoffer__active=True)))
+    by_name = {plan.name: plan for plan in plans}
+    cards = [
+        {"plan": by_name[name], "minutes": by_name[name].monthly_seconds / 60}
+        for name in standard_order if name in by_name
+    ]
+    return render(request, "landing.html", {"standard_plans": cards})
 
 
 @login_required

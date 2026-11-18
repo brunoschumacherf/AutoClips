@@ -434,3 +434,43 @@ video {
   position: relative;
   margin: 1rem 0;
 }
+
+.landing-plans {
+  max-width: 1250px;
+  margin: 0 auto 4rem;
+}
+
+.landing-plans h2 {
+  margin-bottom: 1.25rem;
+}
+
+.landing-plan-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));
+  gap: 1rem;
+}
+
+.landing-plan {
+  display: flex;
+  flex-direction: column;
+}
+
+.landing-plan h3 {
+  font-size: 1.5rem;
+}
+
+.landing-plan .plan-price {
+  color: var(--accent);
+  font-weight: 700;
+  margin-bottom: 0;
+}
+
+.landing-plan ul {
+  padding-left: 1.25rem;
+  line-height: 1.8;
+}
+
+.landing-plan .button {
+  align-self: flex-start;
+  margin-top: auto;
+}

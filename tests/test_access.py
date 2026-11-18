@@ -37,3 +37,18 @@ def test_video_filters_use_workspace_scope(client, django_user_model):
     response = client.get(reverse("api-video-list"), {"search": "Live", "status": "done", "ordering": "title"})
     assert response.status_code == 200
     assert [item["title"] for item in response.json()["results"]] == ["Live publicada"]
+
+
+@pytest.mark.django_db
+def test_public_landing_lists_only_default_plans_and_active_pix_prices(client, settings):
+    from subscriptions.models import PixOffer, SubscriptionPlan
+
+    settings.PIX_MERCHANT_CITY = "São Paulo"
+    starter = SubscriptionPlan.objects.get(name="Starter")
+    PixOffer.objects.create(name="Starter", amount="29.90", plan=starter)
+    PixOffer.objects.create(name="Starter antiga", amount="9.90", plan=starter, active=False)
+    response = client.get(reverse("landing"))
+    assert response.status_code == 200
+    assert [entry["plan"].name for entry in response.context["standard_plans"]] == ["Free", "Starter", "Pro"]
+    assert b"29,90" in response.content and b"9,90" not in response.content.replace(b"29,90", b"")
+    assert b"150 cortes" in response.content

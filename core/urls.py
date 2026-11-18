@@ -8,7 +8,8 @@ from django.views.generic import TemplateView
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 from rest_framework.routers import DefaultRouter
 
-from accounts.views import settings_page
+from core.metrics import prometheus
+from accounts.views import revoke_session, sessions, settings_page
 from analytics.views import overview
 from clips import views as clips
 from dashboard import views as dashboard
@@ -50,9 +51,16 @@ urlpatterns = [
     path("publications/", dashboard.publications, name="publications"),
     path("publications/youtube/connect/", publishing.youtube_connect, name="youtube-connect"),
     path("publications/youtube/callback/", publishing.youtube_callback, name="youtube-callback"),
+    path("publications/instagram/connect/", publishing.instagram_connect, name="instagram-connect"),
+    path("publications/instagram/callback/", publishing.instagram_callback, name="instagram-callback"),
+    path("publications/tiktok/connect/", publishing.tiktok_connect, name="tiktok-connect"),
+    path("publications/tiktok/callback/", publishing.tiktok_callback, name="tiktok-callback"),
     path("clips/<uuid:public_id>/publish/", publishing.schedule, name="clip-publish"),
     path("settings/", settings_page, name="settings"),
+    path("settings/sessions/", sessions, name="sessions"),
+    path("settings/sessions/<uuid:public_id>/revoke/", revoke_session, name="session-revoke"),
     path("health/", health),
+    path("metrics/", prometheus, name="metrics"),
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
     path("api/docs/", SpectacularSwaggerView.as_view(url_name="schema")),
     path("api/", include(router.urls)),

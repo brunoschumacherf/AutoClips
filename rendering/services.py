@@ -2,6 +2,7 @@ from statistics import median
 
 from core.media import materialize, run_media
 
+FONTS = ("DejaVu Sans", "DejaVu Serif", "DejaVu Sans Mono")
 FORMATS = {"9:16": (9, 16), "16:9": (16, 9), "1:1": (1, 1)}
 
 
@@ -24,13 +25,16 @@ def caption_files(version, folder, width, height):
     ass = folder / "clip.ass"
     color = version.style.get("color", "#FFFFFF")[1:]
     primary = "&H00" + color[4:6] + color[2:4] + color[:2]
+    font = version.style.get("font", FONTS[0])
+    outline = version.style.get("outline", 3)
+    shadow = version.style.get("shadow", 1)
     vertical_margin = round(height * (1 - version.style.get("position", 74) / 100))
     size = round(min(width, height) * 0.057)
     lines = [
         "[Script Info]", "ScriptType: v4.00+", f"PlayResX: {width}", f"PlayResY: {height}",
         "[V4+ Styles]",
         "Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding",
-        f"Style: Default,DejaVu Sans,{size},{primary},&H0000DFFF,&H00000000,&H88000000,-1,0,0,0,100,100,0,0,1,3,1,2,28,28,{vertical_margin},1",
+        f"Style: Default,{font},{size},{primary},&H0000DFFF,&H00000000,&H88000000,-1,0,0,0,100,100,0,0,1,{outline},{shadow},2,28,28,{vertical_margin},1",
         "[Events]", "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text",
     ]
     srt_lines, vtt_lines = [], ["WEBVTT\n"]
@@ -79,6 +83,11 @@ def crop_center(version, signals):
     return expression.replace(",", r"\,")
 
 
+def fit_panel(width, height):
+    return (f"scale={width}:{height}:force_original_aspect_ratio=decrease:force_divisible_by=2,"
+            f"pad={width}:{height}:(ow-iw)/2:(oh-ih)/2,setsar=1")
+
+
 def render(version, folder, plan):
     video = version.clip.video
     source = materialize(video.source, folder / "source")
@@ -89,15 +98,28 @@ def render(version, folder, plan):
     srt, vtt, ass = caption_files(version, folder, width, height)
     output = folder / "clip.mp4"
     thumbnail = folder / "thumbnail.jpg"
-    analysis = getattr(video, "aianalysis", None)
-    center = crop_center(version, analysis.signals if analysis else {})
-    filters = (f"scale={width}:{height}:force_original_aspect_ratio=increase:force_divisible_by=2,"
-               f"crop={width}:{height}:max(0\\,min(iw-ow\\,iw*({center})-ow/2)):(ih-oh)/2,"
-               f"setsar=1,ass={ass}")
+    if webcam := version.style.get("webcam"):
+        x, y, crop_width, crop_height = (value / 100 for value in webcam)
+        top = height // 6 * 2
+        bottom = height - top
+        filters = (
+            "[0:v:0]split=2[camera][game];"
+            f"[camera]crop=iw*{crop_width}:ih*{crop_height}:iw*{x}:ih*{y},"
+            f"{fit_panel(width, top)}[face];"
+            f"[game]{fit_panel(width, bottom)}[play];"
+            f"[face][play]vstack=inputs=2,ass={ass}[video]"
+        )
+    else:
+        analysis = getattr(video, "aianalysis", None)
+        center = crop_center(version, analysis.signals if analysis else {})
+        filters = (f"[0:v:0]scale={width}:{height}:force_original_aspect_ratio=increase:force_divisible_by=2,"
+                   f"crop={width}:{height}:max(0\\,min(iw-ow\\,iw*({center})-ow/2)):(ih-oh)/2,"
+                   f"setsar=1,ass={ass}[video]")
     run_media("ffmpeg", "-nostdin", "-v", "error", "-ss", version.start,
               "-protocol_whitelist", "file", "-format_whitelist", "mov,matroska", "-i", source,
-              "-t", version.end - version.start, "-map", "0:v:0", "-map", "0:a:0?", "-filter_threads", "1",
-              "-vf", filters, "-threads", "2", "-c:v", "libx264", "-preset", "veryfast", "-crf", "23",
+              "-t", version.end - version.start, "-filter_complex_threads", "1",
+              "-filter_complex", filters, "-map", "[video]", "-map", "0:a:0?", "-threads", "2",
+              "-c:v", "libx264", "-preset", "veryfast", "-crf", "23",
               "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "128k", "-movflags", "+faststart", output)
     run_media("ffmpeg", "-nostdin", "-v", "error", "-i", output, "-frames:v", "1", "-threads", "1", thumbnail)
     return {"output": output, "thumbnail": thumbnail, "srt": srt, "vtt": vtt}

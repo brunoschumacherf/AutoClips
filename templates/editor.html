@@ -7,7 +7,7 @@
 <h2>Prévia</h2>
 {% if version.output %}<video controls preload="metadata" src="{% url 'clip-asset' clip.public_id 'preview' %}"></video>
 <div class="paging"><a href="{% url 'clip-asset' clip.public_id 'srt' %}">Baixar SRT</a><a href="{% url 'clip-asset' clip.public_id 'vtt' %}">Baixar VTT</a></div>
-{% if can_publish %}<a href="{% url "clip-publish" clip.public_id %}">Agendar envio ao YouTube</a>{% endif %}
+{% if can_publish %}<a href="{% url "clip-publish" clip.public_id %}">Agendar publicação</a>{% endif %}
 {% elif version.render.status == 'failed' %}<p>{{ version.render.error }} Salve novamente para tentar outra renderização.</p>
 {% elif version.render.status == "done" %}<p>A prévia expirou.</p>{% elif version.render.status == 'canceled' %}<p>Renderização cancelada. Salve o corte para gerar uma nova versão.</p>
 {% else %}<p>Renderização em andamento.</p><a href="{{ request.path }}">Atualizar prévia ↻</a>

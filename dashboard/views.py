@@ -6,7 +6,7 @@ from accounts.services import personal_workspace, visible_workspaces
 from clips.models import Clip
 from notifications.models import Notification
 from publishing.models import Publication, SocialAccount
-from publishing.youtube import enabled
+from publishing import instagram, tiktok, youtube
 from subscriptions.models import UsageRecord
 from subscriptions.services import period_start, plan_for
 from videos.models import Video
@@ -57,7 +57,9 @@ def usage(request):
 def publications(request):
     workspaces = visible_workspaces(request.user)
     return render(request, "publications.html", {
-        "youtube_enabled": enabled(),
+        "youtube_enabled": youtube.enabled(),
+        "instagram_enabled": instagram.enabled(),
+        "tiktok_enabled": tiktok.enabled(),
         "publications": Publication.objects.filter(account__workspace__in=workspaces).select_related("account").order_by("-created_at")[:50],
         "accounts": SocialAccount.objects.filter(workspace__in=workspaces),
     })

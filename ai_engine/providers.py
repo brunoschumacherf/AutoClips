@@ -1,10 +1,15 @@
 import json
+import logging
 import re
 from abc import ABC, abstractmethod
+from functools import lru_cache
 from urllib.error import URLError
 from urllib.request import Request, urlopen
 
 from django.conf import settings
+
+
+logger = logging.getLogger(__name__)
 
 
 class SemanticProvider(ABC):
@@ -47,7 +52,43 @@ class ChatCompletions(SemanticProvider):
             return Heuristic().score(text)
 
 
+@lru_cache(maxsize=1)
+def sentence_encoder(model):
+    from sentence_transformers import SentenceTransformer
+
+    return SentenceTransformer(model, device="cpu", trust_remote_code=False)
+
+
+class HuggingFace(SemanticProvider):
+    examples = (
+        "Um momento engraçado, revelação surpreendente, história com desfecho ou reação memorável.",
+        "Rotina, agradecimentos genéricos, informação repetitiva ou conversa sem contexto.",
+    )
+
+    def __init__(self):
+        self.encoder = None
+        self.reference = None
+        self.failed = False
+
+    def score(self, text):
+        if not text or self.failed:
+            return Heuristic().score(text)
+        try:
+            if self.encoder is None:
+                self.encoder = sentence_encoder(settings.SEMANTIC_MODEL)
+                self.reference = self.encoder.encode(self.examples, normalize_embeddings=True)
+            excerpt = self.encoder.encode(text[:2500], normalize_embeddings=True)
+            relevant, routine = self.reference @ excerpt
+            return round(max(0, min(100, 50 + (relevant - routine) * 100)))
+        except Exception as error:
+            self.failed = True
+            logger.warning("semantic_model_unavailable error_type=%s", type(error).__name__)
+            return Heuristic().score(text)
+
+
 def provider():
+    if settings.SEMANTIC_PROVIDER == "huggingface" and settings.SEMANTIC_MODEL:
+        return HuggingFace()
     if settings.SEMANTIC_PROVIDER == "chat" and settings.SEMANTIC_API_BASE and settings.SEMANTIC_MODEL:
         return ChatCompletions()
     return Heuristic()

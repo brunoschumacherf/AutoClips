@@ -39,3 +39,59 @@ def test_publication_claim_and_status(django_user_model, settings, monkeypatch):
     upload.assert_called_once()
     publication.refresh_from_db()
     assert (publication.status, publication.remote_id) == ("processed", "youtube-video")
+
+
+@pytest.mark.django_db
+def test_instagram_waits_for_finished_container(django_user_model, settings, monkeypatch):
+    settings.OAUTH_ENCRYPTION_KEY = Fernet.generate_key().decode()
+    owner = django_user_model.objects.create_user("instagram-creator")
+    workspace = Workspace.objects.create(owner=owner)
+    Subscription.objects.create(workspace=workspace, plan=SubscriptionPlan.objects.get(name="Starter"))
+    account = connect(workspace, "12345", "creator", "grant", provider="instagram")
+    video = Video.objects.create(workspace=workspace, title="Live")
+    clip = Clip.objects.create(video=video, title="Corte")
+    version = ClipVersion.objects.create(clip=clip, start=0, end=3, output="test.mp4")
+    publication = Publication.objects.create(account=account, version=version, title="Corte")
+    PublicationSchedule.objects.create(publication=publication, run_at=timezone.now())
+    monkeypatch.setattr("publishing.tasks.instagram.enabled", lambda: True)
+    create = Mock(return_value="container")
+    status = Mock(side_effect=["IN_PROGRESS", "FINISHED"])
+    publish = Mock(return_value="reel")
+    monkeypatch.setattr("publishing.tasks.instagram.create_container", create)
+    monkeypatch.setattr("publishing.tasks.instagram.container_status", status)
+    monkeypatch.setattr("publishing.tasks.instagram.publish", publish)
+    dispatch_due()
+    publication.refresh_from_db()
+    assert publication.status == "processing"
+    publish.assert_not_called()
+    dispatch_due()
+    dispatch_due()
+    publication.refresh_from_db()
+    assert (publication.status, publication.remote_id) == ("processed", "reel")
+    create.assert_called_once()
+    publish.assert_called_once()
+
+
+@pytest.mark.django_db
+def test_tiktok_delivers_to_inbox(django_user_model, settings, monkeypatch):
+    from publishing.services import serialize_tiktok_grant
+
+    settings.OAUTH_ENCRYPTION_KEY = Fernet.generate_key().decode()
+    workspace = Workspace.objects.create(owner=django_user_model.objects.create_user("tiktok-creator"))
+    Subscription.objects.create(workspace=workspace, plan=SubscriptionPlan.objects.get(name="Starter"))
+    grant = serialize_tiktok_grant({"access_token": "access", "refresh_token": "refresh", "expires_in": 3600})
+    account = connect(workspace, "open-id", "creator", grant, provider="tiktok")
+    video = Video.objects.create(workspace=workspace, title="Live")
+    clip = Clip.objects.create(video=video, title="Corte")
+    version = ClipVersion.objects.create(clip=clip, start=0, end=3, output="test.mp4")
+    publication = Publication.objects.create(account=account, version=version, title="Corte")
+    PublicationSchedule.objects.create(publication=publication, run_at=timezone.now())
+    monkeypatch.setattr("publishing.tasks.tiktok.enabled", lambda: True)
+    upload = Mock(return_value="tiktok-upload")
+    monkeypatch.setattr("publishing.tasks.tiktok.upload", upload)
+    monkeypatch.setattr("publishing.tasks.tiktok.upload_status", lambda identifier, access: "SEND_TO_USER_INBOX")
+    dispatch_due()
+    dispatch_due()
+    publication.refresh_from_db()
+    assert (publication.status, publication.remote_id) == ("inbox", "tiktok-upload")
+    upload.assert_called_once()

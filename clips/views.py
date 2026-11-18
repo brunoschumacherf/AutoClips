@@ -13,9 +13,10 @@ from django.views.decorators.http import require_POST, require_safe
 
 from accounts.services import visible_workspaces
 from rendering.models import RenderJob
+from rendering.services import FONTS
 from rendering.tasks import settle_video
 from videos.events import changed
-from publishing.youtube import enabled
+from publishing import instagram, tiktok, youtube
 from .models import Clip
 from .services import captions_for, remove, version_for
 
@@ -34,6 +35,13 @@ class Editor(forms.Form):
     position = forms.IntegerField(label="Altura das legendas (%)", min_value=15, max_value=90)
     color = forms.RegexField(label="Cor da legenda", regex=r"^#[0-9A-Fa-f]{6}$", widget=forms.TextInput(attrs={"type": "color"}))
     center = forms.IntegerField(label="Centro horizontal manual (%)", min_value=0, max_value=100, required=False)
+    font = forms.ChoiceField(label="Fonte", choices=[(font, font) for font in FONTS], required=False)
+    outline = forms.IntegerField(label="Contorno", min_value=0, max_value=10, required=False)
+    shadow = forms.IntegerField(label="Sombra", min_value=0, max_value=10, required=False)
+    webcam = forms.CharField(
+        label="Área da webcam (opcional)", required=False,
+        help_text="Para empilhar webcam e gameplay no formato 9:16, informe esquerda, topo, largura e altura em porcentagens. Exemplo: 75,0,25,25.",
+    )
     captions = forms.CharField(label="Legendas (uma linha por trecho)", max_length=20000, required=False, widget=forms.Textarea(attrs={"rows": 6}))
 
     def __init__(self, clip, *args, **kwargs):
@@ -44,6 +52,16 @@ class Editor(forms.Form):
         data = super().clean()
         if self.errors:
             return data
+        if data["webcam"]:
+            pieces = [item.strip() for item in data["webcam"].split(",")]
+            if len(pieces) != 4 or not all(item.isascii() and item.isdigit() and len(item) <= 3 for item in pieces):
+                self.add_error("webcam", "Informe quatro números inteiros separados por vírgulas.")
+                return data
+            x, y, width, height = map(int, pieces)
+            if data["aspect"] != "9:16" or min(width, height) < 5 or x + width > 100 or y + height > 100:
+                self.add_error("webcam", "Use formato 9:16 e uma área de pelo menos 5% que caiba no vídeo.")
+                return data
+            data["webcam"] = [x, y, width, height]
         start, end = float(data["start"]), float(data["end"])
         if not start < end <= self.clip.video.duration + 0.011 or end - start > 180:
             raise forms.ValidationError("Escolha um intervalo válido de até 180 segundos.")
@@ -76,6 +94,9 @@ def edit(request, public_id):
         "title": clip.title, "start": round(version.start, 2), "end": round(version.end, 2),
         "aspect": version.aspect, "color": version.style.get("color", "#FFFFFF"),
         "position": version.style.get("position", 74), "center": None if center is None else round(center * 100),
+        "font": version.style.get("font", FONTS[0]), "outline": version.style.get("outline", 3),
+        "shadow": version.style.get("shadow", 1),
+        "webcam": ",".join(map(str, version.style.get("webcam", []))),
         "captions": "\n".join(caption["text"] for caption in version.captions),
     })
     if request.method == "POST" and not clip.video.source:
@@ -83,13 +104,16 @@ def edit(request, public_id):
     if request.method == "POST" and form.is_valid():
         data = form.cleaned_data
         style = {"color": data["color"], "position": data["position"]}
+        for key in ("font", "webcam", "outline", "shadow"):
+            if data[key] is not None and data[key] != "":
+                style[key] = data[key]
         if data["center"] is not None:
             style["center"] = data["center"] / 100
         with transaction.atomic():
             Clip.objects.filter(pk=clip.pk).update(title=data["title"])
             version_for(clip, data["start"], data["end"], data["aspect"], style, data["cues"])
         return redirect("clip", public_id=public_id)
-    return render(request, "editor.html", {"clip": clip, "form": form, "version": version, "can_publish": enabled() and clip.video.workspace.owner_id == request.user.pk})
+    return render(request, "editor.html", {"clip": clip, "form": form, "version": version, "can_publish": (youtube.enabled() or instagram.enabled() or tiktok.enabled()) and clip.video.workspace.owner_id == request.user.pk})
 
 
 @login_required

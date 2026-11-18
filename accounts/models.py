@@ -18,3 +18,9 @@ class AuditLog(Record):
     workspace = models.ForeignKey(Workspace, on_delete=models.CASCADE)
     action = models.CharField(max_length=60)
     resource_id = models.UUIDField()
+
+
+class TrackedSession(Record):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    session_key = models.CharField(max_length=40, unique=True, editable=False)
+    user_agent = models.CharField(max_length=200, blank=True)

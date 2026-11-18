@@ -56,12 +56,14 @@ def test_upload_to_vertical_export(client, django_user_model, monkeypatch, tmp_p
     assert client.get(reverse("video", args=[video.public_id])).status_code == 200
     assert client.get(reverse("clip", args=[clip.public_id])).status_code == 200
     response = client.post(reverse("clip", args=[clip.public_id]), {
-        "title": "Versão editada", "start": ".20", "end": "3.20", "aspect": "1:1", "position": 75,
+        "title": "Versão editada", "start": ".20", "end": "3.20", "aspect": "9:16", "position": 75,
         "color": "#AAAAAA", "captions": "Uma legenda revisada", "center": 50,
+        "webcam": "75,0,25,25", "font": "DejaVu Serif", "outline": 4, "shadow": 2,
     })
     assert response.status_code == 302
     clip.refresh_from_db()
     assert clip.current_version.output and clip.current_version.captions[0]["text"] == "Uma legenda revisada"
+    assert clip.current_version.style["webcam"] == [75, 0, 25, 25]
     other = django_user_model.objects.create_user("other", email="other@example.test")
     client.force_login(other)
     assert client.get(preview).status_code == 404

@@ -15,7 +15,8 @@ from core.jobs import claim, release
 from core.media import materialize
 from notifications.models import Notification
 from subscriptions.services import reserve
-from transcriptions.models import Transcription, TranscriptionSegment
+from transcriptions.diarization import dominant_speaker, speaker_turns
+from transcriptions.models import Speaker, Transcription, TranscriptionSegment
 from transcriptions.services import recognize
 from .events import changed
 from .models import ProcessingJob, Video
@@ -69,9 +70,17 @@ def transcribe_media(video):
     with tempfile.TemporaryDirectory() as directory:
         audio = materialize(video.audio, Path(directory) / "audio.wav")
         language, confidence, segments = recognize(audio, video.options.get("language"))
+        turns = speaker_turns(audio) if segments else []
     with transaction.atomic():
         transcript = Transcription.objects.create(video=video, language=language, confidence=confidence)
-        TranscriptionSegment.objects.bulk_create([TranscriptionSegment(transcription=transcript, **segment) for segment in segments])
+        speakers = {}
+        records = []
+        for segment in segments:
+            label = dominant_speaker(segment["start"], segment["end"], turns)
+            if label and label not in speakers:
+                speakers[label] = Speaker.objects.create(transcription=transcript, label=label[:40])
+            records.append(TranscriptionSegment(transcription=transcript, speaker=speakers.get(label), **segment))
+        TranscriptionSegment.objects.bulk_create(records)
 
 
 def analyze_media(video):

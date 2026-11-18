@@ -14,11 +14,13 @@ INSTALLED_APPS = [
     "django.contrib.sessions", "django.contrib.messages", "django.contrib.staticfiles",
     "allauth", "allauth.account", "allauth.socialaccount",
     "rest_framework", "drf_spectacular", "channels",
+    "django_filters", "corsheaders",
     "accounts", "dashboard", "videos", "streams", "transcriptions", "ai_engine",
     "clips", "rendering", "publishing", "analytics", "subscriptions", "notifications", "integrations",
 ]
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware", "django.contrib.sessions.middleware.SessionMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.middleware.locale.LocaleMiddleware", "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware", "django.contrib.auth.middleware.AuthenticationMiddleware",
@@ -103,7 +105,17 @@ SEMANTIC_PROVIDER = env("SEMANTIC_PROVIDER", default="heuristic")
 SEMANTIC_API_BASE = env("SEMANTIC_API_BASE", default="")
 SEMANTIC_API_KEY = env("SEMANTIC_API_KEY", default="")
 SEMANTIC_MODEL = env("SEMANTIC_MODEL", default="")
-SCORE_WEIGHTS = {"semantic": 3, "audio": 2, "visual": 1, "context": 3, "technical": 1}
+SCORE_WEIGHTS = {
+    name: env.int(f"SCORE_WEIGHT_{name.upper()}", default=weight)
+    for name, weight in {"semantic": 3, "audio": 2, "visual": 1, "context": 3,
+                         "engagement": 1, "technical": 1}.items()
+}
+if any(value < 0 for value in SCORE_WEIGHTS.values()) or not sum(SCORE_WEIGHTS.values()):
+    from django.core.exceptions import ImproperlyConfigured
+
+    raise ImproperlyConfigured("Score weights must be non-negative and at least one must be positive.")
+DIARIZATION_MODEL = env("DIARIZATION_MODEL", default="")
+DIARIZATION_TOKEN = env("DIARIZATION_TOKEN", default="")
 REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
@@ -138,3 +150,16 @@ if GOOGLE_LOGIN_CLIENT_ID and GOOGLE_LOGIN_CLIENT_SECRET:
     SOCIALACCOUNT_PROVIDERS = {"google": {"APPS": [{
         "client_id": GOOGLE_LOGIN_CLIENT_ID, "secret": GOOGLE_LOGIN_CLIENT_SECRET, "key": "",
     }]}}
+
+METRICS_TOKEN = env("METRICS_TOKEN", default="")
+CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS", default=[])
+CORS_URLS_REGEX = r"^/api/"
+
+INSTAGRAM_APP_ID = env("INSTAGRAM_APP_ID", default="")
+INSTAGRAM_APP_SECRET = env("INSTAGRAM_APP_SECRET", default="")
+INSTAGRAM_REDIRECT_URI = env("INSTAGRAM_REDIRECT_URI", default="")
+INSTAGRAM_API_VERSION = env("INSTAGRAM_API_VERSION", default="v24.0")
+
+TIKTOK_CLIENT_KEY = env("TIKTOK_CLIENT_KEY", default="")
+TIKTOK_CLIENT_SECRET = env("TIKTOK_CLIENT_SECRET", default="")
+TIKTOK_REDIRECT_URI = env("TIKTOK_REDIRECT_URI", default="")

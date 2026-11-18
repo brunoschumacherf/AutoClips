@@ -14,7 +14,7 @@ def expire_media(video_id):
     versions = ClipVersion.objects.filter(clip__video=video).select_for_update()
     if RenderJob.objects.filter(version__in=versions, status__in=["pending", "running"]).exists():
         return
-    if Publication.objects.filter(version__in=versions, status__in=["scheduled", "uploading", "uncertain"]).exists():
+    if Publication.objects.filter(version__in=versions, status__in=["scheduled", "uploading", "processing", "publishing", "uncertain"]).exists():
         return
     for obj, keys in [(video, ("source", "audio")), *((version, ("output", "thumbnail", "srt", "vtt")) for version in versions)]:
         for key in keys:

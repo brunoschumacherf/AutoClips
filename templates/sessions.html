@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block body %}
+<a class="back" href="{% url 'settings' %}">← Configurações</a>
+<header class="heading"><div><h1>Sessões ativas</h1><p>Encerre o acesso de outros dispositivos.</p></div></header>
+<section class="card">
+{% for session in sessions %}
+<div class="row">
+<div><strong>{% if session.session_key == current_key %}Sessão atual{% else %}Outro dispositivo{% endif %}</strong>
+<p>{{ session.user_agent|default:"Navegador não identificado" }} · {{ session.created_at|date:"d/m/Y H:i" }}</p></div>
+<form method="post" action="{% url 'session-revoke' session.public_id %}">{% csrf_token %}<button class="quiet">Encerrar sessão</button></form>
+</div>
+{% empty %}<p>Nenhuma sessão registrada. Entre novamente para registrar este dispositivo.</p>{% endfor %}
+</section>
+{% endblock %}

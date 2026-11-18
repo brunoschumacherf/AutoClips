@@ -15,8 +15,11 @@ def overview(request):
     days = videos.filter(status=Video.State.DONE).annotate(day=TruncDate("created_at")).values("day").annotate(
         total=Count("id"), seconds=Sum("duration"),
     ).order_by("-day")[:30]
+    rows = [{"day": item["day"], "total": item["total"], "minutes": round(item["seconds"] / 60, 1)}
+            for item in days]
     return render(request, "analytics.html", {
-        "days": [{"day": item["day"], "total": item["total"], "minutes": round(item["seconds"] / 60, 1)} for item in days],
+        "days": rows,
+        "chart": [{"day": item["day"].strftime("%d/%m"), "total": item["total"]} for item in reversed(rows)],
         "failed": videos.filter(status=Video.State.FAILED).count(),
         "published": Publication.objects.filter(account__workspace__in=workspaces, status="processed").count(),
     })

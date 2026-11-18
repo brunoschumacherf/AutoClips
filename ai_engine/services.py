@@ -67,6 +67,8 @@ def suggestions(video, segments, energy, motion):
             "audio": min(100, round((max(sample, default=0) * 0.55 + (sum(sample) / max(len(sample), 1)) * 0.45) * 420)),
             "visual": min(100, round(max(movement, default=0) * 3)),
             "context": 90 if text.endswith((".", "!", "?")) else (55 if text else 20),
+            "engagement": min(100, round((max(sample, default=0) - min(sample, default=0)) * 350
+                                          + (18 if text.endswith(("!", "?")) else 0))),
             "technical": 90 if video.height >= 720 else 60,
         }
         weights = settings.SCORE_WEIGHTS

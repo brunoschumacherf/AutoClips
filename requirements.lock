@@ -12,6 +12,7 @@ asgiref==3.13.0
     #   channels-redis
     #   django
     #   django-allauth
+    #   django-cors-headers
 attrs==26.1.0
     # via
     #   jsonschema
@@ -65,12 +66,18 @@ django==5.2.19
     #   cortalives (pyproject.toml)
     #   channels
     #   django-allauth
+    #   django-cors-headers
+    #   django-filter
     #   django-storages
     #   djangorestframework
     #   drf-spectacular
 django-allauth==65.22.1
     # via cortalives (pyproject.toml)
+django-cors-headers==4.9.0
+    # via cortalives (pyproject.toml)
 django-environ==0.14.0
+    # via cortalives (pyproject.toml)
+django-filter==25.2
     # via cortalives (pyproject.toml)
 django-storages==1.14.6
     # via cortalives (pyproject.toml)

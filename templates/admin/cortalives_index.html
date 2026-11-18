@@ -1,0 +1,11 @@
+{% extends "admin/index.html" %}
+{% block content %}
+<div class="module">
+<h2>Operação e pagamentos</h2>
+<p>Espaços de trabalho: {{ workspace_count }} · Vídeos concluídos: {{ completed_count }}</p>
+<p>Valor aprovado: R$ {{ approved_total|floatformat:2 }}</p>
+<p><a href="{% url 'admin:subscriptions_pixorder_changelist' %}?status__exact=review">Pedidos Pix em análise ({{ review_count }})</a>
+ · <a href="{% url 'admin:subscriptions_pixoffer_changelist' %}">Gerenciar ofertas Pix</a> · <a href="{% url 'admin:subscriptions_subscriptionplan_changelist' %}">Planos de assinatura</a></p>
+</div>
+{{ block.super }}
+{% endblock %}

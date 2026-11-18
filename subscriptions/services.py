@@ -5,7 +5,7 @@ from django.db.models import Sum
 from django.utils import timezone
 
 from accounts.models import Workspace
-from .models import Subscription, SubscriptionPlan, UsageRecord
+from .models import CreditGrant, Subscription, SubscriptionPlan, UsageRecord
 
 
 class LimitExceeded(ValueError):
@@ -14,13 +14,21 @@ class LimitExceeded(ValueError):
 
 def plan_for(workspace):
     free, _ = SubscriptionPlan.objects.get_or_create(name="Free", defaults={
-        "monthly_seconds": 3600, "monthly_clips": 30, "storage_bytes": 2 * 1024**3, "max_height": 720,
+        "is_default": True, "monthly_seconds": 3600, "monthly_clips": 30, "storage_bytes": 2 * 1024**3, "max_height": 720,
     })
-    return Subscription.objects.select_related("plan").get_or_create(workspace=workspace, defaults={"plan": free})[0].plan
+    subscription, _ = Subscription.objects.select_related("plan").get_or_create(workspace=workspace, defaults={"plan": free})
+    if subscription.paid_until and subscription.paid_until <= timezone.now():
+        return free
+    return subscription.plan
 
 
 def period_start():
     return timezone.localdate().replace(day=1)
+
+
+def credits_for(workspace, period):
+    totals = CreditGrant.objects.filter(workspace=workspace, period=period).aggregate(seconds=Sum("seconds"), clips=Sum("clips"))
+    return totals["seconds"] or 0, totals["clips"] or 0
 
 
 @transaction.atomic
@@ -34,10 +42,11 @@ def reserve(video, *, duration=0, clips=0, size=0):
     previous.seconds = max(previous.seconds, math.ceil(duration))
     previous.clips = max(previous.clips, clips)
     previous.bytes = max(previous.bytes, size)
-    if (totals["seconds"] or 0) + previous.seconds > plan.monthly_seconds:
+    extra_seconds, extra_clips = credits_for(workspace, previous.period)
+    if (totals["seconds"] or 0) + previous.seconds > plan.monthly_seconds + extra_seconds:
         raise LimitExceeded("Limite mensal de processamento atingido.")
-    if (totals["clips"] or 0) + previous.clips > plan.monthly_clips:
-        raise LimitExceeded("Limite mensal de cortes atingido.")
+    if (totals["clips"] or 0) + previous.clips > plan.monthly_clips + extra_clips:
+        raise LimitExceeded("Saldo de cortes insuficiente. Consulte sua franquia ou adicione créditos.")
     if occupied + previous.bytes > plan.storage_bytes:
         raise LimitExceeded("Limite de armazenamento atingido.")
     previous.save()

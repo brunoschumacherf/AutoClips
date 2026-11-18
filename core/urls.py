@@ -14,6 +14,7 @@ from analytics.views import overview
 from clips import views as clips
 from dashboard import views as dashboard
 from publishing import views as publishing
+from subscriptions import views as billing
 from videos import views as videos
 from videos.api import VideoViewSet
 
@@ -47,6 +48,9 @@ urlpatterns = [
     path("clips/<uuid:public_id>/delete/", clips.delete, name="clip-delete"),
     path("clips/<uuid:public_id>/file/<str:kind>/", clips.asset, name="clip-asset"),
     path("usage/", dashboard.usage, name="usage"),
+    path("usage/pix/new/<uuid:public_id>/", billing.start, name="pix-start"),
+    path("usage/pix/<uuid:public_id>/", billing.order_detail, name="pix-order"),
+    path("usage/pix/<uuid:public_id>/qr/", billing.qr, name="pix-qr"),
     path("analytics/", overview, name="analytics"),
     path("publications/", dashboard.publications, name="publications"),
     path("publications/youtube/connect/", publishing.youtube_connect, name="youtube-connect"),

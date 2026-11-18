@@ -1,7 +1,17 @@
 {% extends "base.html" %}
 {% block body %}
-<header class="heading"><div><h1>Assinatura e consumo</h1><p>Plano {{ plan.name }}</p></div></header>
+<header class="heading"><div><h1>Assinatura e consumo</h1><p>Plano {{ plan.name }}{% if paid_until %} · válido até {{ paid_until|date:"d/m/Y" }}{% endif %}</p></div></header>
 <div class="metrics"><div class="card metric"><span>Minutos no mês</span><strong>{{ minutes }}</strong><span>Limite de {{ plan.monthly_seconds }} segundos</span></div>
-<div class="card metric"><span>Cortes no mês</span><strong>{{ clips }}</strong><span>Limite de {{ plan.monthly_clips }}</span></div>
+<div class="card metric"><span>Cortes no mês</span><strong>{{ clips }}</strong><span>{{ clip_balance }} disponíveis · {{ plan.monthly_clips }} no plano</span></div>
 <div class="card metric"><span>Arquivos armazenados</span><strong>{{ storage }} MB</strong></div></div>
+{% if extra_minutes or extra_clips %}<p>Créditos adicionais neste mês: {{ extra_minutes }} minutos e {{ extra_clip_balance }} de {{ extra_clips }} cortes extras disponíveis.</p>{% endif %}
+<section class="card"><h2>Comprar com Pix</h2>
+{% for offer in offers %}
+<div class="row"><div><strong>{{ offer.name }}</strong><p>R$ {{ offer.amount }}{% if offer.plan_id %} · 30 dias{% else %} · {{ offer.credit_minutes }} min e {{ offer.credit_clips }} cortes extras até o fim do mês{% endif %}</p></div>
+<form method="post" action="{% url 'pix-start' offer.public_id %}">{% csrf_token %}<button class="button">Gerar Pix</button></form></div>
+{% empty %}<p>Nenhuma oferta Pix disponível.</p>{% endfor %}
+</section>
+<section class="card"><h2>Meus pedidos Pix</h2>
+{% for order in orders %}<a class="row" href="{% url 'pix-order' order.public_id %}"><strong>{{ order.offer_name }}</strong><span>{{ order.get_status_display }}</span></a>{% empty %}<p>Nenhum pedido realizado.</p>{% endfor %}
+</section>
 {% endblock %}

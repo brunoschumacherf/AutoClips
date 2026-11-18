@@ -13,7 +13,7 @@ docker compose logs -f worker
 
 Abra http://localhost:8000, crie uma conta e importe um MP4, MOV ou MKV com áudio. Use um vídeo curto na primeira execução. Abra a prévia depois do processamento, ajuste o intervalo e as legendas e baixe o MP4, SRT ou VTT. O modelo é baixado no primeiro uso e fica no volume `models`. Para usar um modelo CTranslate2 já disponível no volume, configure seu caminho em `WHISPER_MODEL`.
 
-`make superuser` cria um administrador. `make migrate` aplica migrations. Em `/admin/`, administre os quatro planos e os workspaces. A API de leitura exige sessão autenticada, identifica recursos por UUID e tem esquema em `/api/schema/`.
+`make migrate` aplica migrations. Em `/admin/`, entre com `ADMIN_USER` e `ADMIN_PASSWORD` para administrar planos, workspaces e pedidos Pix. A API de leitura exige sessão autenticada, identifica recursos por UUID e tem esquema em `/api/schema/`.
 
 ## Executar a aplicação no host com PostgreSQL e Redis em contêineres
 
@@ -72,6 +72,27 @@ Em **Novo processamento**, cole o link público de uma transmissão autorizada. 
 
 Defina `LIVE_CAPTURE_MAX_MINUTES` para ajustar o limite de duração por gravação, até 30 minutos. A captura também respeita os limites de duração e tamanho do vídeo. O Docker inclui Node.js e os componentes JavaScript do yt-dlp para o YouTube. Fora do Docker, instale Node.js 22 ou superior, FFmpeg e as dependências Python do projeto. Configure `IMPORT_PROXY` no web e no worker e use um proxy HTTP com saída controlada que permita os hosts públicos de mídia necessários. O worker precisa de acesso a esses hosts durante toda a gravação. Uma transmissão agendada, privada, bloqueada ou que encerre antes de fornecer mídia utilizável pode falhar.
 
+## Assinaturas e créditos por Pix
+
+Configure as seguintes variáveis no **serviço web** do Render ou no `.env` local:
+
+| Variável | Uso |
+| --- | --- |
+| `ADMIN_USER` | Nome de login do único operador do painel em `/admin/`. |
+| `ADMIN_PASSWORD` | Senha forte do operador. Grave somente como segredo do ambiente. A troca invalida as sessões do painel. |
+| `PIX_MERCHANT_NAME` | Nome do recebedor usado no QR. O padrão é `CortaLives`. |
+| `PIX_MERCHANT_CITY` | Cidade do recebedor. Preencha para disponibilizar o QR e as ofertas. |
+
+Free, Starter e Pro são os planos padrão. Em **Administração → Planos de assinatura**, o operador pode cadastrar planos extras e definir as franquias. O Business de instalações anteriores fica disponível como plano adicional.
+
+Cada novo corte consome uma unidade da franquia do plano, complementada pelos créditos Pix do mês. A criação dos cortes e a contabilização acontecem na mesma transação. Editar ou renderizar novamente um corte existente não consome outra unidade. A página **Assinatura e consumo** mostra o saldo.
+
+Depois das migrations, entre em **Administração → Ofertas Pix** e cadastre os preços. Escolha um plano para vender 30 dias de assinatura ou informe minutos e/ou cortes adicionais para vender créditos. Os créditos são válidos no mês da aprovação. Renovar o mesmo plano soma 30 dias ao prazo restante. A assinatura expirada volta ao plano Free.
+
+O cliente abre **Assinatura e consumo**, gera um QR Code para a chave CNPJ `62151351000150` e envia um comprovante PDF, PNG ou JPEG de até 5 MB. Em **Administração → Pedidos Pix em análise**, baixe o anexo, confira a entrada no extrato bancário e aprove ou recuse o pedido. A aprovação é manual. O QR Code estático não consulta a instituição bancária nem confirma automaticamente um pagamento. A chave precisa estar registrada no banco do recebedor.
+
+O anexo é entregue pelo Django apenas no painel e deve permanecer em armazenamento privado. A lista de preços vem das ofertas cadastradas pelo operador. O sistema não inclui valores padrão.
+
 ## Domínio no Render
 
 O Django inclui o host exato de `RENDER_EXTERNAL_HOSTNAME` e a origem HTTPS correspondente, usando a variável que o Render fornece ao serviço web. Para um domínio personalizado, inclua o hostname em `ALLOWED_HOSTS` e a origem HTTPS em `CSRF_TRUSTED_ORIGINS`. Em produção, defina `DEBUG=False` e configure um `SECRET_KEY` exclusivo e estável nas variáveis do serviço.
@@ -91,7 +112,7 @@ O deploy web executa as migrations antes de trocar a versão ativa e inicia o AS
 
 Em implantação, configure HTTPS, `DEBUG=False`, um segredo exclusivo, domínios em `ALLOWED_HOSTS` e `CSRF_TRUSTED_ORIGINS`, SMTP e verificação de e-mail obrigatória. Restrinja PostgreSQL e Redis, limite o corpo de upload no proxy e configure backup e alertas. `VIDEO_RETENTION_DAYS` remove arquivos de vídeos em estados finais após o prazo e preserva o consumo e os metadados. A retenção automática vem desativada. Configure retenção de logs e backups, atendimento a titulares e controle sobre envio de texto a terceiros antes de operar comercialmente.
 
-A cobrança e a publicação direta no TikTok continuam pendentes. O frontend usa templates Django, CSS próprio e JavaScript, com WebSocket e polling de recuperação. O cancelamento invalida resultados em andamento. Um FFmpeg já em execução pode continuar até terminar ou atingir o timeout. Uma resposta de upload perdida no YouTube deixa o status indeterminado para evitar reenvio duplicado.
+A cobrança recorrente automática e a publicação direta no TikTok continuam pendentes. O frontend usa templates Django, CSS próprio e JavaScript, com WebSocket e polling de recuperação. O cancelamento invalida resultados em andamento. Um FFmpeg já em execução pode continuar até terminar ou atingir o timeout. Uma resposta de upload perdida no YouTube deixa o status indeterminado para evitar reenvio duplicado.
 
 ## Recursos opcionais adicionais
 

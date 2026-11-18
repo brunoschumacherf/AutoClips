@@ -93,18 +93,26 @@ def analyze_media(video):
         energy = audio_energy(audio)
         movement, faces, scenes = visual_signals(source, video.duration)
     results = suggestions(video, list(video.transcription.segments.all()), energy, movement)
-    reserve(video, clips=len(results))
     with transaction.atomic():
         analysis = AIAnalysis.objects.create(video=video, signals={"energy": energy, "faces": faces, "scenes": scenes, "motion": movement})
         Highlight.objects.bulk_create([Highlight(analysis=analysis, rank=rank, **result) for rank, result in enumerate(results, 1)])
 
 
+@transaction.atomic
 def generate_clips(video):
-    for highlight in video.aianalysis.highlights.all():
-        with transaction.atomic():
-            clip, created = Clip.objects.get_or_create(video=video, highlight=highlight, defaults={"title": f"{video.title[:160]} · Corte {highlight.rank}"})
-            if created:
-                version_for(clip, highlight.start, highlight.end, video.options["aspect"], {"color": "#FFFFFF", "position": 74})
+    video = Video.objects.select_for_update().get(pk=video.pk)
+    if video.status != State.GENERATING:
+        return
+    highlights = list(video.aianalysis.highlights.all())
+    existing = set(video.clips.values_list("highlight_id", flat=True))
+    missing = [highlight for highlight in highlights if highlight.pk not in existing]
+    if not missing:
+        return
+    # Resize the video allocation and create its cuts in the same transaction.
+    reserve(video, clips=len(highlights))
+    for highlight in missing:
+        clip = Clip.objects.create(video=video, highlight=highlight, title=f"{video.title[:160]} · Corte {highlight.rank}")
+        version_for(clip, highlight.start, highlight.end, video.options["aspect"], {"color": "#FFFFFF", "position": 74})
 
 
 @shared_task(bind=True, max_retries=3)

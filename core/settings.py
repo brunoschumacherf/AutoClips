@@ -14,7 +14,7 @@ if RENDER_EXTERNAL_HOSTNAME and RENDER_EXTERNAL_HOSTNAME not in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
 DATABASES = {"default": env.db(default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}")}
 INSTALLED_APPS = [
-    "django.contrib.admin", "django.contrib.auth", "django.contrib.contenttypes",
+    "core.adminconfig.CortaAdminConfig", "django.contrib.auth", "django.contrib.contenttypes",
     "django.contrib.sessions", "django.contrib.messages", "django.contrib.staticfiles",
     "allauth", "allauth.account", "allauth.socialaccount",
     "rest_framework", "drf_spectacular", "channels",
@@ -173,3 +173,8 @@ INSTAGRAM_API_VERSION = env("INSTAGRAM_API_VERSION", default="v24.0")
 TIKTOK_CLIENT_KEY = env("TIKTOK_CLIENT_KEY", default="")
 TIKTOK_CLIENT_SECRET = env("TIKTOK_CLIENT_SECRET", default="")
 TIKTOK_REDIRECT_URI = env("TIKTOK_REDIRECT_URI", default="")
+
+ADMIN_USER = env("ADMIN_USER", default="").strip()
+ADMIN_PASSWORD = env("ADMIN_PASSWORD", default="")
+PIX_MERCHANT_NAME = env("PIX_MERCHANT_NAME", default="CortaLives")
+PIX_MERCHANT_CITY = env("PIX_MERCHANT_CITY", default="")

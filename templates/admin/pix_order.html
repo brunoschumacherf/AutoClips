@@ -1,0 +1,21 @@
+{% extends "admin/change_form.html" %}
+{% block after_field_sets %}{% endblock %}
+{% block submit_buttons_bottom %}{% endblock %}
+{% block content %}
+{{ block.super }}
+{% if original.status == "review" %}
+<div class="module">
+<h2>Revisar pagamento</h2>
+<form method="post" action="{% url 'admin:pix-review' original.public_id %}">
+{% csrf_token %}
+<p>Compare o comprovante com o extrato, o recebedor e o valor do pedido.</p>
+<p><label><input type="checkbox" name="confirmed" value="yes"> Confirmei a entrada do valor no extrato</label></p>
+<p><label for="pix-note">Observação para o cliente</label><input id="pix-note" name="note" maxlength="300"></p>
+<div class="submit-row">
+<button type="submit" name="decision" value="approve">Aprovar pedido</button>
+<button type="submit" name="decision" value="reject">Recusar pedido</button>
+</div>
+</form>
+</div>
+{% endif %}
+{% endblock %}

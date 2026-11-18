@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block body %}
+<a class="back" href="{% url 'usage' %}">← Assinatura e consumo</a>
+<header class="heading"><div><h1>{{ order.offer_name }}</h1><p>R$ {{ order.amount }} · {{ order.get_status_display }}</p></div></header>
+<section class="card form-card">
+{% if pix_code %}
+<h2>Pagar com Pix</h2>
+<p>Confira o recebedor e o valor no aplicativo do banco. Depois, envie o comprovante para análise.</p>
+<img width="260" height="260" src="{% url 'pix-qr' order.public_id %}" alt="QR Code de pagamento Pix" style="background:white">
+<label for="pix-code">Pix copia e cola</label>
+<textarea id="pix-code" readonly rows="4">{{ pix_code }}</textarea>
+{% endif %}
+{% if order.status == "awaiting" %}
+<form method="post" enctype="multipart/form-data">{% csrf_token %}{{ form.as_p }}<button class="button">Enviar comprovante</button></form>
+{% elif order.status == "review" %}<p>Comprovante recebido. Seu pedido será liberado após conferência.</p>
+{% elif order.review_note %}<p>{{ order.review_note }}</p>{% endif %}
+</section>
+{% endblock %}

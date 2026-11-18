@@ -181,6 +181,8 @@ pyyaml==6.0.3
     #   drf-spectacular
     #   huggingface-hub
     #   uvicorn
+qrcode==8.2
+    # via cortalives (pyproject.toml)
 redis==8.1.0
     # via
     #   channels-redis

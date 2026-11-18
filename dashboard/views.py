@@ -1,14 +1,16 @@
 from django.contrib.auth.decorators import login_required
 from django.db.models import Sum
 from django.shortcuts import render
+from django.utils import timezone
 
 from accounts.services import personal_workspace, visible_workspaces
 from clips.models import Clip
 from notifications.models import Notification
 from publishing.models import Publication, SocialAccount
 from publishing import instagram, tiktok, youtube
-from subscriptions.models import UsageRecord
-from subscriptions.services import period_start, plan_for
+from subscriptions import pix
+from subscriptions.models import PixOffer, PixOrder, Subscription, UsageRecord
+from subscriptions.services import credits_for, period_start, plan_for
 from videos.models import Video
 
 
@@ -47,9 +49,18 @@ def usage(request):
         seconds=Sum("seconds"), clips=Sum("clips"),
     )
     size = UsageRecord.objects.filter(workspace=workspace).aggregate(total=Sum("bytes"))["total"] or 0
+    extra_seconds, extra_clips = credits_for(workspace, period_start())
+    plan = plan_for(workspace)
+    used_clips = totals["clips"] or 0
     return render(request, "usage.html", {
-        "plan": plan_for(workspace), "minutes": round((totals["seconds"] or 0) / 60, 1),
-        "clips": totals["clips"] or 0, "storage": round(size / 1024**2, 1),
+        "offers": PixOffer.objects.filter(active=True).order_by("amount") if pix.enabled() else (),
+        "orders": PixOrder.objects.filter(workspace=workspace).order_by("-created_at")[:25],
+        "extra_minutes": extra_seconds // 60, "extra_clips": extra_clips,
+        "paid_until": Subscription.objects.filter(workspace=workspace, paid_until__gt=timezone.now())
+        .values_list("paid_until", flat=True).first(),
+        "plan": plan, "minutes": round((totals["seconds"] or 0) / 60, 1),
+        "clips": used_clips, "clip_balance": max(0, plan.monthly_clips + extra_clips - used_clips),
+        "extra_clip_balance": max(0, extra_clips - max(0, used_clips - plan.monthly_clips)), "storage": round(size / 1024**2, 1),
     })
 
 
